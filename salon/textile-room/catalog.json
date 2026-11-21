@@ -1,0 +1,6 @@
+{
+  "sofa": {"asset":"sofa_03","name":"ספה ישרה על רגליים","position":[1.85,0.016,-4.64],"angle":0,"scale":[1.12,1,1.08]},
+  "westChair": {"asset":"modern_arm_chair_01","name":"כורסה עם משענות עץ","position":[0,0.017,-1.60],"angle":2.60,"scale":[1,1,1]},
+  "eastChair": {"asset":"modern_arm_chair_01","name":"כורסה עם משענות עץ","position":[1.8,0.012,-1.20],"angle":3.30,"scale":[1,1,1]},
+  "table": {"asset":"modern_coffee_table_01","name":"שולחן עץ על רגליים","position":[1.70,0.019,-2.85],"angle":1.57079633,"scale":[1.42,0.927,1.26]}
+}

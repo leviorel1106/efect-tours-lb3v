@@ -5,7 +5,7 @@
 <base href="./viewer/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>הסלון בקיסריה · רהיטים וצבעים</title>
-<link rel="stylesheet" href="../textile-room/finishes.css">
+<link rel="stylesheet" href="../textile-room/finishes.css?v=3">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; color: #f2eee6; font-family: 'Rubik', Arial, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
   canvas { display: block; width: 100%; height: 100%; }
@@ -185,7 +185,7 @@ let roomFinishes=null;
 const sectional=[[-.36,4.32,4.0,5.35],[3.04,4.32,3.10,4.08]];
 const straight=[[.315,3.385,4.13,5.15]];
 const oldTable=[.85,2.55,2.35,3.35],woodTable=[.94,2.46,2.42,3.28];
-const furnishingBounds=()=>[...(roomFinishes?.model('sofa')?straight:sectional),roomFinishes?.model('table')?woodTable:oldTable];
+const furnishingBounds=()=>[...(roomFinishes?.model('sofa')?straight:sectional),roomFinishes?.model('table')===1?woodTable:oldTable];
 const legacyBounds=[[-.45,4.2,3,5.4],[3.05,4.2,2.6,5.4],[.9,2.65,2.25,3.5]];
 let furnitureBlocks=legacyBounds;
 const POSTS = [[-2.95, -1.8, 0.62], [5.95, -1.8, 0.62], [-6.6, -6.6, 0.62], [0.0, 1.6, 0.62], [1.8, 1.2, 0.62], [0.9, 1.3, 0.32], [-0.8, 5.5, 0.3], [-3.0, 1.0, 0.4], [9.9, 2.6, 0.45], [9.6, 1.0, 0.36], [-14.0, -7.2, 0.5], [-13.6, -8.1, 0.4], [13.6, -0.9, 0.55], [12.9, -0.8, 0.4]];
@@ -264,12 +264,13 @@ if(wovenMode){
  grade.material.fragmentShader=grade.material.fragmentShader.replace('0.42);','0.27);').replace('0.028 *','0.008 *');
  grade.material.needsUpdate=true;
  document.getElementById('where').textContent='גרירה למבט · חצים להליכה · לחיצה על הרצפה לבחירת יעד';
- const {installWoven}=await import('../woven-room/room.js?v=9');
- const editor=textileMode?await import('../textile-room/finishes.js?v=2'):null;
+ const {installWoven}=await import('../woven-room/room.js?v=10');
+ const editor=textileMode?await import('../textile-room/finishes.js?v=3'):null;
+ const designArrival=new URLSearchParams(location.search).get('design')==='dunes';
  const finishes=editor?.createFinishes(await (await fetch('../textile-room/catalog.json')).json());
  roomFinishes=finishes;
  if(finishes)furnitureBlocks=furnishingBounds();
- const newFabric=textileMode?(await import('../textile-room/textile.js?v=8')).fitTextiles:null;
+ const newFabric=textileMode?(await import('../textile-room/textile.js?v=9')).fitTextiles:null;
  wovenTick=await installWoven(scene,gltf.scene,renderer,sky,sea,glassMat,newFabric,finishes);
  const {roomNavigation}=await import('../woven-room/navigation.js?v=6');
  const {walkRecorder}=await import('../woven-room/record.js?v=2');
@@ -302,7 +303,8 @@ if(wovenMode){
      pitch=Math.atan2(height-eyeHeight,Math.hypot(tx-x,ty-y));
    };
    if(editOnArrival)showPoint([-3.6,2.14,1.92,4.1,.79]);
-   editor.mountFinishEditor(finishes,showPoint,editOnArrival);
+   if(designArrival)showPoint([-2.30,.90,1.6,3.75,1.07]);
+   editor.mountFinishEditor(finishes,showPoint,editOnArrival && !designArrival);
  }
  const caster=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
  let pressed;

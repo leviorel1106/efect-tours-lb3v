@@ -21,7 +21,9 @@ uniform samplerCube roomProbe;
 uniform float t,probeWeight;
 #ifdef FURNITURE_LAYOUT
 uniform vec4 models;
-uniform sampler2D layoutLight;
+uniform sampler2D layoutLight,duneLight;
+uniform float pendant,duneDetails;
+uniform vec3 pendantTint;
 vec3 floorLight(vec2 uv,float arrangement){
  vec2 tile=vec2(mod(arrangement,4.),floor(arrangement/4.));
  uv=clamp(uv,vec2(.0015),vec2(.9985));
@@ -37,6 +39,7 @@ uniform vec3 finishTint;
 #endif
 #ifdef EDIT_WALLS
 uniform vec3 shelfTint;
+uniform sampler2D veneer;
 #endif
 float luma(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
 vec3 skyColor(vec3 r){
@@ -81,6 +84,10 @@ const fragment=common+`
 void main(){
  vec3 n=normalize(N),v=normalize(cameraPosition-P);if(dot(n,v)<0.)n=-n;
  
+ #if defined(FURNITURE_LAYOUT) && defined(LANTERN_PART)
+ bool oldLamp=length(P.xz-vec2(1.70,-2.85))<.46 && P.y>2.18 && P.y<3.32;
+ if(pendant>.5 && oldLamp)discard;
+ #endif
  vec2 uv=planar(n,P);
  #ifdef UPHOLSTERY
  vec3 c=energy;
@@ -88,15 +95,20 @@ void main(){
  vec3 c=pow(max(texture2D(lightmap,st).rgb,vec3(0.)),vec3(2.4))*8.;
  #endif
  #if defined(FURNITURE_LAYOUT) && (defined(RUG) || defined(STONE))
- float arrangement=dot(models,vec4(1.,2.,4.,8.));
+ float seating=dot(models.xyz,vec3(1.,2.,4.));
+ float arrangement=seating+8.*min(models.w,1.);
  vec2 floorXY=vec2(P.x,-P.z);
  if(arrangement>.5 && P.y<.035 && P.x>-2. && P.x<7. && P.z<0. && P.z>-7.5){
    vec2 mapUV=(floorXY+vec2(2.,0.))/vec2(9.,7.5);
    vec3 original=floorLight(mapUV,0.),updated=floorLight(mapUV,arrangement);
+   if(models.w>1.5){
+     vec2 cell=vec2(mod(seating,4.),floor(seating/4.));
+     updated=pow(texture2D(duneLight,(cell+clamp(mapUV,vec2(.0015),vec2(.9985)))/vec2(4.,2.)).rgb,vec3(2.4))*8.;
+   }
    float exposed=models.x*max(underPiece(floorXY,vec2(1.99,4.70),vec2(2.35,.69)),underPiece(floorXY,vec2(3.62,3.63),vec2(.62,.62)));
    exposed=max(exposed,models.y*underPiece(floorXY,vec2(0,1.6),vec2(.58)));
    exposed=max(exposed,models.z*underPiece(floorXY,vec2(1.8,1.2),vec2(.57)));
-   exposed=max(exposed,models.w*underPiece(floorXY,vec2(1.7,2.85),vec2(.86,.51)));
+   exposed=max(exposed,min(models.w,1.)*underPiece(floorXY,vec2(1.7,2.85),vec2(.86,.51)));
    // A surface hidden by the old base has no usable photographic colour.
    // Restore its Cycles result, retaining the photographic transfer elsewhere.
    c=mix(c*clamp((updated+.003)/(original+.003),vec3(.08),vec3(5.)),updated,exposed);
@@ -190,12 +202,31 @@ void main(){
  #if defined(EDIT_WALLS)
  bool shelving=P.z < -7.48 && P.z > -7.99 && P.x > -3.06 && P.x < 6.06 && P.y < 2.91 && P.y >= -.01;
  bool interior=P.x>=-6.36 && P.x<=11.04 && P.z>=-8.04 && P.z<=.041 && P.y>-.015 && P.y<3.3;
- if(shelving)c*=shelfTint;
+ if(shelving){
+   c*=shelfTint;
+   if(duneDetails>.5 && P.z < -7.925 && P.y>.62 && abs(N.z)>.96){
+     float bay=floor((P.x+3.)/1.5);
+     vec2 grainUV=vec2(P.y*.58,(P.x+bay*.19)*1.36);
+     float grain=texture2D(veneer,grainUV).r;
+     c*=vec3(.68,.51,.355)*(.76+.44*grain);
+   }
+ }
  else if(interior && abs(N.y)<.95)c*=finishTint;
  #elif defined(EDIT_CURTAINS)
  if(P.z>-.30)c*=finishTint;
  #elif defined(EDIT_RUG)
- if(P.x<4.43 && P.y<.035)c*=finishTint;
+ if(P.x<4.43 && P.y<.035){
+   c*=finishTint;
+   if(duneDetails>.5){
+     vec2 edge=vec2(2.60,1.80)-abs(P.xz-vec2(1.80,-3.00));
+     float inset=min(edge.x,edge.y);
+     float border=(1.-smoothstep(.009,.019,abs(inset-.082)))+.80*(1.-smoothstep(.003,.012,abs(inset-.113)));
+     c*=mix(vec3(1.),vec3(.55,.49,.38),min(1.,border));
+   }
+ }
+ #ifdef LANTERN_PART
+ if(oldLamp)c*=pendantTint;
+ #endif
  #elif defined(EDIT_TABLE)
  if(P.y<.39 && abs(P.x-1.7)<.88 && abs(P.z+2.85)<.53){if(models.w>.5)discard;c*=finishTint;}
  #else
@@ -239,8 +270,9 @@ export async function installWoven(scene,oldModel,renderer,sky,sea,glass,fitFabr
  const time={value:0},enabled={value:0};
  const u={panels:{value:textures['cloth-panels']},art:{value:textures.print},coast:{value:coast},roomProbe:{value:cube.texture},t:time,probeWeight:enabled};
  if(finishes){
-   const light=await images.loadAsync('../textile-room/layout-light.webp');
-   light.flipY=false;
+   const [light,duneLight]=await Promise.all(['layout-light','dune-light'].map(name=>images.loadAsync('../textile-room/'+name+'.webp')));
+   light.flipY=duneLight.flipY=false;
+   u.veneer={value:textures.grain};u.duneLight={value:duneLight};u.pendant=finishes.pendant;u.pendantTint=finishes.tint('pendant');u.duneDetails=finishes.duneDetails;
    u.layoutLight={value:light};u.models=finishes.models;
  }
  for(const group of ['ARCH_IN','ARCH_OUT','LOW','FURN','FOL']){
@@ -261,11 +293,15 @@ export async function installWoven(scene,oldModel,renderer,sky,sea,glass,fitFabr
      mesh.userData.replacedChair=groupName==='Objects' && /boucle/i.test(mesh.material.name);
      const weave={CLOTH:'weave',RUG:'jute',STONE:'stone',TRAVERTINE:'travertine',CLAY:'clay',WOOD:'grain',PLASTER:'plaster'};
      mesh.material=new THREE.ShaderMaterial({side:THREE.DoubleSide,vertexColors:linen,vertexShader:vertex,fragmentShader:fragment,
-       defines:{[type]:1,...editableSurface?.defines,...(finishes?{FURNITURE_LAYOUT:1}:{}),...(finishes&&mesh.material.name==='id_dark_steel'?{SOFA_FEET:1}:{}),...(fitFabric&&type==='WOOD'&&groupName==='Objects'?{REPLACED_BASE:1}:{}),...(linen?{UPHOLSTERY:1}:{})},
+       defines:{[type]:1,...(finishes && groupName==='Objects' && ['id_dark_steel','id_bulb','id_jute'].includes(mesh.material.name)?{LANTERN_PART:1}:{}),...editableSurface?.defines,...(finishes?{FURNITURE_LAYOUT:1}:{}),...(finishes&&mesh.material.name==='id_dark_steel'?{SOFA_FEET:1}:{}),...(fitFabric&&type==='WOOD'&&groupName==='Objects'?{REPLACED_BASE:1}:{}),...(linen?{UPHOLSTERY:1}:{})},
        uniforms:{...u,...editableSurface?.uniforms,materialMap:{value:textures[weave[type]||'plaster']},lightmap:{value:textures[groupName]||textures.Objects}}});
    });
  }
  scene.add(room.scene);
+ if(finishes){
+   const {installDunes}=await import('../textile-room/dunes.js?v=1');
+   await installDunes(scene,loader,finishes,textures.travertine);
+ }
  if(fitFabric)await fitFabric({scene,room:room.scene,loader,renderer,finishes});
  scene.add(probe);
  // Avoid reading from the same cubemap while writing it.

@@ -48,7 +48,7 @@ export async function installAlternatives(scene,loader,state,renderer){
   }
   function apply(){
     for(const {id,object,dye,strength} of records){
-      object.visible=!!state.model(id);
+      object.visible=state.model(id)===1;
       const hex=state.get(id);strength.value=hex?1:0;
       if(hex)dye.value.set(hex);
     }

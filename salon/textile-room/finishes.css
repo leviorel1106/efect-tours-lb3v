@@ -72,3 +72,6 @@
 .finish-model[hidden] {display:none;}
 #finish-editor .finish-model select {width:100%;}
 .finish-color-label {display:block;margin-bottom:5px;}
+
+.finish-design {display:grid;gap:4px;padding-bottom:10px;border-bottom:1px solid #d5d6c9;margin-bottom:10px;}
+#finish-editor .finish-design select {font-weight:600;background:#e8ebdf;}

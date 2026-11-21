@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {fitBase} from './ash.js';
-import {installAlternatives} from './alternatives.js';
+import {installAlternatives} from './alternatives.js?v=2';
 
 const vertex = `
 attribute vec2 clothUV;

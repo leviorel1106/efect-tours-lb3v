@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<title>וילה מול הים · סיור וירטואלי | Efect</title>
+<meta name="description" content="סיור וירטואלי בווילה מול הים: דק, בריכה, פרגולה וסלון. דוגמה של Efect, הבית הישראלי לעולמות וירטואליים.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="../_efect/efect.css">
+<style>
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--ef-ink); color:var(--ef-ink); font-family:var(--ef-font); touch-action:none; user-select:none; -webkit-user-select:none; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; cursor:ns-resize; }
+  body:not(.go) .hud { opacity:0; pointer-events:none; }
+  .hud { transition:opacity .4s ease; }
+  /* the route: one segment per leg, coloured in the order of the four worlds */
+  .track { position:fixed; z-index:6; bottom:max(16px, env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(600px, calc(100% - 300px)); min-width:190px; background:var(--ef-glass); border-radius:18px; padding:10px 16px 12px; box-shadow:var(--ef-shadow); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .track p { margin:0 0 8px; text-align:center; font-size:.9rem; font-weight:700; color:var(--ef-ink); }
+  .track p small { font-weight:500; color:var(--ef-muted); font-size:.8rem; margin-inline-start:8px; font-variant-numeric:tabular-nums; }
+  .segs { display:flex; gap:4px; cursor:pointer; }
+  .segs i { flex:1; height:6px; border-radius:6px; background:var(--ef-line); overflow:hidden; position:relative; }
+  .segs i u { position:absolute; inset:0 0 0 auto; width:0; border-radius:6px; }
+  /* the joystick: the chevron of the mark points the way */
+  .joy { position:fixed; z-index:6; bottom:max(22px, env(safe-area-inset-bottom)); inset-inline-end:22px; width:112px; height:112px; border-radius:50%; background:rgba(255,255,255,.26); border:2px solid rgba(255,255,255,.9); box-shadow:var(--ef-shadow); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); touch-action:none; cursor:grab; }
+  .joy i { position:absolute; left:50%; top:50%; width:50px; height:50px; margin:-25px; border-radius:50%; background:#fff; box-shadow:0 3px 12px rgba(0,0,0,.3); display:grid; place-items:center; will-change:transform; }
+  .joy i svg { width:26px; height:26px; color:var(--ef-pink); }
+  .joy::before, .joy::after { content:""; position:absolute; left:50%; width:11px; height:11px; margin-left:-6px; border:3px solid #fff; border-bottom:0; border-right:0; border-radius:2px; }
+  .joy::before { top:9px; transform:rotate(45deg); } .joy::after { bottom:9px; transform:rotate(225deg); }
+  .tip { position:fixed; z-index:6; bottom:150px; inset-inline-end:14px; background:var(--ef-ink); color:#fff; font-size:.82rem; font-weight:500; padding:7px 14px; border-radius:999px; white-space:nowrap; transition:opacity .4s; }
+  .tip.off { opacity:0; }
+  @media (max-width:640px) { .track { width:calc(100% - 28px); bottom:150px; } .tip { display:none; } }
+</style>
+</head>
+<body>
+<canvas id="cv" aria-label="הסיור: גוררים למעלה או למטה כדי לנוע"></canvas>
+<div class="hud">
+  <div class="ef-brand"><img src="../_efect/lockup.png" alt="Efect"><span>וילה מול הים</span></div>
+  <div class="ef-pills" role="group" aria-label="מצב הסיור"><button id="m-auto">מודרך</button><button id="m-me" class="on">אני מוביל</button></div>
+  <div class="track"><p><span id="where"></span><small id="count"></small></p><div class="segs" id="segs"></div></div>
+  <div class="joy" id="joy" role="application" aria-label="ג'ויסטיק: קדימה ואחורה"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 10.5 12 4l6.5 6.5M5.5 13.5 12 20l6.5-6.5"/></svg></i></div>
+  <div class="tip" id="tip">דוחפים קדימה כדי ללכת, אחורה כדי לחזור</div>
+</div>
+<div class="ef-scrim" id="intro" hidden>
+  <div class="ef-card"><div class="ef-stripe"></div><div class="pad">
+    <img class="lock" src="../_efect/lockup.png" alt="Efect, הבית הישראלי לעולמות וירטואליים">
+    <span class="ef-tag">סיור וירטואלי · דוגמה</span>
+    <h1>וילה מול הים</h1>
+    <p>הולכים לאורך הבריכה, יושבים רגע מתחת לפרגולה, נכנסים לסלון וחוזרים אל השקיעה. בוחרים איך לסייר:</p>
+    <div class="acts"><button class="ef-btn" id="go-auto">סיור מודרך<small>יושבים וצופים, הכול רץ לבד</small></button><button class="ef-btn alt" id="go-me">אני מוביל<small>קדימה, אחורה ועצירה בכל רגע</small></button></div>
+    <div class="how"><span><b>ג׳ויסטיק או חיצים</b> כדי לנוע</span><span><b>גלגלת או גרירה</b> גם עובדות</span><span><b>רווח</b> לסיור מודרך</span></div>
+    <div class="fine">ההדמיות להמחשה בלבד.</div>
+  </div></div>
+</div>
+<script type="module">
+import { efLoader, efEnd } from '../_efect/efect.js';
+// The tour is filmed footage: every leg of the route is a clip of 10 s kept as single pictures. Pushing forward shows them forward, pulling back shows them backward, letting go stops on the exact picture.
+const loader = efLoader();
+const CFG = await (await fetch('walk.json?' + Date.now(), { cache: 'no-store' })).json(); const V = '?v=' + CFG.v; const LEGS = CFG.legs; const FPS = 24;
+const WORLD = ['--ef-pink', '--ef-orange', '--ef-blue', '--ef-grey']; const starts = []; let total = 0; for (const l of LEGS) { starts.push(total); total += l.n; }
+const cv = document.getElementById('cv'), g = cv.getContext('2d'); const img = LEGS.map((l) => new Array(l.n)); const got = LEGS.map(() => 0);
+const url = (k, i) => `f/${LEGS[k].name}/${String(i + 1).padStart(4, '0')}.webp${V}`;
+function fetchFrame(k, i, tries = 3) { return new Promise((ok) => { const im = new Image(); im.decoding = 'async'; im.onload = () => { img[k][i] = im; got[k]++; ok(true); }; im.onerror = () => tries > 1 ? setTimeout(() => fetchFrame(k, i, tries - 1).then(ok), 400) : ok(false); im.src = url(k, i); }); }
+async function loadLeg(k, onp) { const q = [...Array(LEGS[k].n).keys()]; let done = 0; await Promise.all([...Array(8)].map(async () => { while (q.length) { await fetchFrame(k, q.shift()); onp && onp(++done / LEGS[k].n); } })); }
+let pos = 0, vel = 0, auto = false, ended = false; const keys = new Set();
+function resize() { const pr = Math.min(devicePixelRatio, 2); cv.width = innerWidth * pr; cv.height = innerHeight * pr; }
+addEventListener('resize', resize); resize();
+function frameAt(p) { p = Math.max(0, Math.min(total - 1, p)); let k = LEGS.length - 1; while (k > 0 && p < starts[k]) k--; return [k, Math.min(LEGS[k].n - 1, Math.floor(p - starts[k]))]; }
+function nearest(k, i) { for (let d = 0; d < 40; d++) { if (img[k][i - d]) return img[k][i - d]; if (img[k][i + d]) return img[k][i + d]; } return null; }
+function put(im, a) { if (!im) return; const s = Math.max(cv.width / im.naturalWidth, cv.height / im.naturalHeight), w = im.naturalWidth * s, h = im.naturalHeight * s; g.globalAlpha = a; g.drawImage(im, (cv.width - w) / 2, (cv.height - h) / 2, w, h); g.globalAlpha = 1; }
+const segs = document.getElementById('segs'); const fills = LEGS.map((l, k) => { const i = document.createElement('i'); i.style.flexGrow = l.n; const u = document.createElement('u'); u.style.background = `var(${WORLD[k % 4]})`; i.appendChild(u); segs.appendChild(i); return u; });
+function draw() { const [k, i] = frameAt(pos); put(nearest(k, i), 1);
+  const left = LEGS[k].n - 1 - i; if (k < LEGS.length - 1 && left < 10 && img[k + 1][0]) put(img[k + 1][0], 1 - left / 10);      // a leg ends on the picture the next one starts on; a short dissolve hides what differs between two takes
+  fills.forEach((u, j) => { u.style.width = (j < k ? 100 : j > k ? 0 : 100 * (i + 1) / LEGS[k].n) + '%'; }); document.getElementById('where').textContent = LEGS[k].title; document.getElementById('count').textContent = (k + 1) + ' מתוך ' + LEGS.length; }
+segs.addEventListener('pointerdown', (e) => { const r = segs.getBoundingClientRect(); pos = (r.right - e.clientX) / r.width * (total - 1); setAuto(false); });
+const bA = document.getElementById('m-auto'), bM = document.getElementById('m-me');
+function setAuto(v) { auto = v; bA.classList.toggle('on', v); bM.classList.toggle('on', !v); if (v) document.getElementById('tip').classList.add('off'); }
+bA.onclick = () => { if (pos > total - 3) pos = 0; ended = false; setAuto(true); }; bM.onclick = () => setAuto(false);
+const joy = document.getElementById('joy'), knob = joy.querySelector('i'); let pid = null, jy = 0;
+const mv = (e) => { const r = joy.getBoundingClientRect(); jy = Math.max(-1, Math.min(1, (e.clientY - r.top - r.height / 2) / (r.height / 2))); knob.style.transform = `translate(0, ${jy * 32}px)`; };
+joy.addEventListener('pointerdown', (e) => { e.preventDefault(); pid = e.pointerId; try { joy.setPointerCapture(pid); } catch (err) {} mv(e); setAuto(false); document.getElementById('tip').classList.add('off'); });
+joy.addEventListener('pointermove', (e) => { if (e.pointerId === pid) mv(e); });
+for (const n of ['pointerup', 'pointercancel']) joy.addEventListener(n, (e) => { if (e.pointerId !== pid) return; pid = null; jy = 0; knob.style.transform = ''; });
+addEventListener('keydown', (e) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; keys.add(k); if (k.startsWith('Arrow') || k === ' ') e.preventDefault(); if (!document.body.classList.contains('go')) return; if (k === ' ') (auto ? bM : bA).click(); else if (['w', 's', 'ArrowUp', 'ArrowDown'].includes(k)) { setAuto(false); document.getElementById('tip').classList.add('off'); } });
+addEventListener('keyup', (e) => keys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key)); addEventListener('blur', () => keys.clear());
+addEventListener('wheel', (e) => { if (!document.body.classList.contains('go')) return; pos += -e.deltaY * 0.06; setAuto(false); }, { passive: true });
+let drag = null; cv.addEventListener('pointerdown', (e) => { drag = e.clientY; cv.setPointerCapture(e.pointerId); setAuto(false); });
+cv.addEventListener('pointermove', (e) => { if (drag === null) return; pos += (drag - e.clientY) * 0.35; drag = e.clientY; }); for (const n of ['pointerup', 'pointercancel']) cv.addEventListener(n, () => { drag = null; });
+function finish() { ended = true; setAuto(false); efEnd({ actions: [['לצפות שוב', () => { pos = 0; ended = false; setAuto(true); }], ['להמשיך לשוטט', () => { pos = total - 2; }, true]] }); }
+let last = performance.now();
+function tick(t) { const dt = Math.min(0.1, (t - last) / 1000); last = t; let input = -jy; if (keys.has('w') || keys.has('ArrowUp')) input += 1; if (keys.has('s') || keys.has('ArrowDown')) input -= 1; input = Math.max(-1, Math.min(1, input));
+  const live = document.body.classList.contains('go'); const want = !live ? 0 : auto ? 1 : input; vel += (want - vel) * Math.min(1, dt * 6); pos = Math.max(0, Math.min(total - 1, pos + vel * FPS * dt));
+  if (live && !ended && pos >= total - 1 && (auto || vel > 0.2)) finish(); if (pos < total - 30) ended = false; draw(); requestAnimationFrame(tick); }
+await loadLeg(0, (p) => loader.progress(p)); requestAnimationFrame(tick);
+window.__dbg = { ready: true, go: (p) => { pos = p; }, got, total, starts };
+const intro = document.getElementById('intro'); intro.hidden = false; await loader.open();
+const begin = (a) => { intro.hidden = true; document.body.classList.add('go'); setAuto(a); };
+document.getElementById('go-auto').onclick = () => begin(true); document.getElementById('go-me').onclick = () => begin(false);
+for (let k = 1; k < LEGS.length; k++) await loadLeg(k);
+</script>
+</body>
+</html>

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <base href="./viewer/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>הסלון בקיסריה · רהיטים וצבעים</title>
-<link rel="stylesheet" href="../textile-room/finishes.css?v=3">
+<title>הווילה בקיסריה · עיצוב וסיור</title>
+<link rel="stylesheet" href="../textile-room/finishes.css?v=5">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; color: #f2eee6; font-family: 'Rubik', Arial, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
   canvas { display: block; width: 100%; height: 100%; }
@@ -40,7 +40,7 @@
 function loadFailed(){
   const box=document.querySelector('#load:not(.off) div');
   if(!box || box.querySelector('button'))return;
-  box.textContent='טעינת הסלון נעצרה. ';
+  box.textContent='טעינת הווילה נעצרה. ';
   const b=document.createElement('button');b.textContent='נסה שוב';b.onclick=()=>location.reload();box.append(b);
 }
 window.addEventListener('unhandledrejection',loadFailed);window.addEventListener('error',loadFailed);
@@ -185,7 +185,10 @@ let roomFinishes=null;
 const sectional=[[-.36,4.32,4.0,5.35],[3.04,4.32,3.10,4.08]];
 const straight=[[.315,3.385,4.13,5.15]];
 const oldTable=[.85,2.55,2.35,3.35],woodTable=[.94,2.46,2.42,3.28];
-const furnishingBounds=()=>[...(roomFinishes?.model('sofa')?straight:sectional),roomFinishes?.model('table')===1?woodTable:oldTable];
+const sofaBounds=[sectional,straight,[[.16,3.54,3.91,5.27]],[[.19,3.51,4.13,5.20]]];
+const tableBounds=[oldTable,woodTable,oldTable,[.76,2.73,2.28,3.44],[.82,2.58,2.34,3.36]];
+const furnishingBounds=()=>[...sofaBounds[roomFinishes?.model('sofa')||0],tableBounds[roomFinishes?.model('table')||0]];
+const kitchenBlocks=[[-9.32,-8.11,2.91,5.40],[-8.19,-7.70,3.41,3.88],[-8.19,-7.70,4.45,4.91],[-10.9,-6.48,7.20,7.96]];
 const legacyBounds=[[-.45,4.2,3,5.4],[3.05,4.2,2.6,5.4],[.9,2.65,2.25,3.5]];
 let furnitureBlocks=legacyBounds;
 const POSTS = [[-2.95, -1.8, 0.62], [5.95, -1.8, 0.62], [-6.6, -6.6, 0.62], [0.0, 1.6, 0.62], [1.8, 1.2, 0.62], [0.9, 1.3, 0.32], [-0.8, 5.5, 0.3], [-3.0, 1.0, 0.4], [9.9, 2.6, 0.45], [9.6, 1.0, 0.36], [-14.0, -7.2, 0.5], [-13.6, -8.1, 0.4], [13.6, -0.9, 0.55], [12.9, -0.8, 0.4]];
@@ -261,18 +264,23 @@ if(wovenMode){
  document.title=textileMode?'הסלון בקיסריה · סיור ועריכת חומרים':'הסלון בקיסריה · הליכה בתוך המודל';
  camera.fov=55;camera.updateProjectionMatrix();
  grade.enabled=true;bloom.strength=.038;
+
  grade.material.fragmentShader=grade.material.fragmentShader.replace('0.42);','0.27);').replace('0.028 *','0.008 *');
  grade.material.needsUpdate=true;
  document.getElementById('where').textContent='גרירה למבט · חצים להליכה · לחיצה על הרצפה לבחירת יעד';
- const {installWoven}=await import('../woven-room/room.js?v=10');
- const editor=textileMode?await import('../textile-room/finishes.js?v=3'):null;
+ if(textileMode)document.title='הווילה בקיסריה · סטודיו לעיצוב';
+ const {installWoven}=await import('../woven-room/room.js?v=13');
+ const editor=textileMode?await import('../textile-room/finishes.js?v=5'):null;
  const designArrival=new URLSearchParams(location.search).get('design')==='dunes';
  const finishes=editor?.createFinishes(await (await fetch('../textile-room/catalog.json')).json());
  roomFinishes=finishes;
- if(finishes)furnitureBlocks=furnishingBounds();
+ if(finishes){
+   ZONES.push([-10.71,-6.54,.30,7.40],[-6.62,-5.60,1.42,2.37]);
+   BLOCK.push(...kitchenBlocks);furnitureBlocks=furnishingBounds();
+ }
  const newFabric=textileMode?(await import('../textile-room/textile.js?v=9')).fitTextiles:null;
  wovenTick=await installWoven(scene,gltf.scene,renderer,sky,sea,glassMat,newFabric,finishes);
- const {roomNavigation}=await import('../woven-room/navigation.js?v=6');
+ const {roomNavigation}=await import('../woven-room/navigation.js?v=8');
  const {walkRecorder}=await import('../woven-room/record.js?v=2');
  const editOnArrival=sharedTour || (textileMode && new URLSearchParams(location.search).has('colors'));
  pickWalk=roomNavigation(free,()=>[px,py,yaw,pitch],(x,y,a,b)=>{px=x;py=y;yaw=a;pitch=b;},stopTour,textileMode?{textiles:true,eye:()=>eyeHeight,crouch:()=>crouch=!crouch,furnishingBounds,showReview:!sharedTour,reviewPage:editOnArrival?'salon-finish-walk':null}:{});
@@ -304,7 +312,7 @@ if(wovenMode){
    };
    if(editOnArrival)showPoint([-3.6,2.14,1.92,4.1,.79]);
    if(designArrival)showPoint([-2.30,.90,1.6,3.75,1.07]);
-   editor.mountFinishEditor(finishes,showPoint,editOnArrival && !designArrival);
+   editor.mountFinishEditor(finishes,showPoint,editOnArrival && !designArrival,new URL(location.href).searchParams.get('zone')||'salon',item=>pickWalk.behind(item));
  }
  const caster=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
  let pressed;

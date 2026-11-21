@@ -1,6 +1,6 @@
 // Route only in response to a visitor picking a floor location. Keyboard input cancels it.
 export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
- const bounds={left:-5.9,right:10.9,near:.27,far:7.45};
+ const bounds=options.textiles?{left:-14.5,right:14.5,near:-13,far:8}:{left:-5.9,right:10.9,near:.27,far:7.45};
  const step=.18,cols=Math.ceil((bounds.right-bounds.left)/step),rows=Math.ceil((bounds.far-bounds.near)/step);
  const world=i=>[bounds.left+(i%cols+.5)*step,bounds.near+(Math.floor(i/cols)+.5)*step];
  const id=(x,y)=>Math.max(0,Math.min(cols-1,Math.floor((x-bounds.left)/step)))+cols*Math.max(0,Math.min(rows-1,Math.floor((y-bounds.near)/step)));
@@ -49,9 +49,9 @@ export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
  panel.style.cssText='position:fixed;right:13px;top:62px;z-index:6;background:#eeeae3;color:#272822;padding:10px;border-radius:10px;box-shadow:0 4px 24px #0004;width:min(310px,80vw);font:13px Arial,sans-serif';
  panel.innerHTML='<div style="margin:0 0 6px">בחר מקום פנוי ברצפה</div><canvas aria-label="תכנית הסלון לבחירת יעד הליכה" width="600" height="300" style="height:auto;width:100%;cursor:crosshair;touch-action:none"></canvas>';
  document.body.append(panel);
- const map=btn('מפת הסלון',()=>{panel.hidden=!panel.hidden;map.setAttribute('aria-expanded',String(!panel.hidden));paint();});map.setAttribute('aria-expanded','false');
+ const map=btn(options.textiles?'מפת הווילה':'מפת הסלון',()=>{panel.hidden=!panel.hidden;map.setAttribute('aria-expanded',String(!panel.hidden));paint();});map.setAttribute('aria-expanded','false');
  map.setAttribute('aria-controls',panel.id);
- let follow=true,targetFurniture='sofa',orient=false;
+ let explicitBack=null,follow=true,targetFurniture='sofa',orient=false;
  const gaze=btn('מבט אל הספה',()=>{follow=!follow;gaze.setAttribute('aria-pressed',String(follow));gaze.classList.toggle('on',follow);orient=!!options.textiles&&follow;});
  gaze.classList.add('on');gaze.setAttribute('aria-pressed','true');
  if(options.textiles){
@@ -61,7 +61,8 @@ export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
  if(options.showReview!==false)btn('הקלטת הבדיקה',()=>{location.href='../../reviews/pages/'+(options.reviewPage || (options.textiles?'salon-textile-walk':'salon-woven-walk'))+'/index.html';});
  let waypoints=[],velocity=0;
  const cv=panel.querySelector('canvas'),g=cv.getContext('2d');
- const left=-6.17,right=11.05,near=0,far=8.,X=x=>Math.round((x-left)*cv.width/(right-left)),Y=y=>Math.round(cv.height-y*cv.height/(far-near));
+ if(options.textiles){cv.height=434;cv.setAttribute('aria-label','תכנית הווילה לבחירת יעד הליכה');}
+ const {left,right,near,far}=bounds,X=x=>Math.round((x-left)*cv.width/(right-left)),Y=y=>Math.round((far-y)*cv.height/(far-near));
  function paint(){
    if(panel.hidden)return;
    g.fillStyle='#b1aaa0';g.fillRect(0,0,cv.width,cv.height);
@@ -74,8 +75,11 @@ export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
    rect(-3,7.51,9,.49,'#82786d');
    g.direction='rtl';g.fillStyle='#4e493e';g.font='18px Arial';g.textAlign='center';
    if(options.textiles){
+     rect(-9.32,2.91,1.21,2.49,'#a29077');rect(-10.86,7.20,4.3,.7,'#82786d');
+     rect(-11.90,-3.83,3.40,1.06,'#a29077');rect(-6,-12.3,18,4.4,'#99bcbf');
+     g.fillText('מטבח',X(-8.7),Y(1.4));g.fillText('פרגולה',X(-10.4),Y(-5.35));g.fillText('בריכה',X(3),Y(-10.1));
      for(const [cx,cy,rot] of [[0,1.6,2.6],[1.8,1.2,3.3]]){
-       g.save();g.translate(X(cx),Y(cy));g.rotate(-rot);g.fillStyle='#a08c73';g.beginPath();g.roundRect(-13,-12,26,25,6);g.fill();g.restore();
+       g.save();g.translate(X(cx),Y(cy));g.rotate(-rot);g.fillStyle='#a08c73';g.beginPath();g.roundRect(-.45*cv.width/(right-left),-.45*cv.height/(far-near),.9*cv.width/(right-left),.9*cv.height/(far-near),3);g.fill();g.restore();
      }
      g.fillStyle='#4e493e';
    }
@@ -88,8 +92,19 @@ export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
    const b=[left+(e.clientX-r.left)/r.width*(right-left),far-(e.clientY-r.top)/r.height*(far-near)];
    walkTo(b);};
  function walkTo(b){const [x,y]=pose();const chosen=route([x,y],b);
-   if(!chosen.length)return;stopOther();waypoints=chosen;velocity=0;paint();}
+   if(!chosen.length)return false;stopOther();waypoints=chosen;velocity=0;paint();return true;}
  function look(x,y,yaw,pitch,dt){
+   if(explicitBack){
+     const [a,b,h]=explicitBack,desired=Math.atan2(x-a,b-y);
+     const tilt=Math.atan2(h-options.eye(),Math.hypot(a-x,b-y));
+     return [yaw+Math.atan2(Math.sin(desired-yaw),Math.cos(desired-yaw))*(1-Math.exp(-dt*4.3)),pitch+(tilt-pitch)*(1-Math.exp(-dt*4.6))];
+   }
+   const outside=options.textiles && (y<.2 || x< -6.05);
+   if(outside){
+     const [a,b]=x< -6.05 && y>.2?[-8.72,4.16]:x< -6?[-10.20,-3.3]:[-2.95,-5.6];
+     const desired=Math.atan2(x-a,b-y);
+     return [yaw+Math.atan2(Math.sin(desired-yaw),Math.cos(desired-yaw))*(1-Math.exp(-dt*3.5)),pitch+(-.16-pitch)*(1-Math.exp(-dt*3.5))];
+   }
    const chair=targetFurniture==='chairs';
    const d0=Math.hypot(x,y-1.6),d1=Math.hypot(x-1.8,y-1.2);
    let blend=Math.min(1,Math.max(0,.5+(d0-d1)/1.8));blend=blend*blend*(3-2*blend);
@@ -114,7 +129,12 @@ export function roomNavigation(isWalkable,pose,move,stopOther,options={}){
    }
    move(gx,gy,heading,tilt);if(len>=d-.0001)waypoints.shift();paint();
  }
- function cancel(){waypoints=[];velocity=0;orient=false;paint();}
+ function cancel(){explicitBack=null;waypoints=[];velocity=0;orient=false;paint();}
  function rebuild(){for(let i=0;i<grid.length;i++)grid[i]=isWalkable(...world(i));cancel();}
- return {tick,cancel,walkTo,rebuild};
+ function behind(item){
+   const views={sofa:[[2.88,6.48],[1.80,4.66,.69]],westChair:[[-.86,.45],[0,1.6,.53]],eastChair:[[1.85,-.71],[1.8,1.20,.56]]};
+   const [goal,center]=views[item==='chairs'?'eastChair':item];
+   if(walkTo(goal)){explicitBack=center;follow=true;orient=true;gaze.classList.add('on');gaze.setAttribute('aria-pressed','true');}
+ }
+ return {tick,cancel,walkTo,rebuild,behind};
 }

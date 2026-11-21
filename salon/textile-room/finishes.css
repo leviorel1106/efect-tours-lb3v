@@ -75,3 +75,18 @@
 
 .finish-design {display:grid;gap:4px;padding-bottom:10px;border-bottom:1px solid #d5d6c9;margin-bottom:10px;}
 #finish-editor .finish-design select {font-weight:600;background:#e8ebdf;}
+.finish-zones {display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:#e3e2d6;padding:3px;border-radius:9px;margin-bottom:10px;}
+.finish-zones button {min-height:30px;border:0;background:transparent;border-radius:7px;font-weight:bold!important;}
+.finish-zones button[aria-pressed=true] {background:#fefcf5;color:#263d30;box-shadow:0 1px 4px #0002;}
+.finish-links {border-top:1px solid #d5d6c9;margin-top:6px;padding-top:8px;}
+.finish-share {width:100%;border:0;border-radius:6px;background:#314939;color:#fff!important;padding:6px;}
+.finish-links details {margin-top:8px;font-size:11px;color:#586457;}
+.finish-links summary {cursor:pointer;}
+.finish-ref-list {display:grid;gap:5px;margin:6px 0;}
+.finish-ref-list a {color:inherit;}
+
+.finish-previews {display:flex;gap:4px;margin-top:3px;}
+.finish-previews button {flex:1;min-width:0;border:2px solid transparent;padding:1px;background:transparent;border-radius:6px;}
+.finish-previews button[aria-pressed=true],.finish-previews button:focus-visible {border-color:#385643;}
+.finish-previews img {display:block;width:100%;height:35px;object-fit:cover;border-radius:3px;}
+#finish-editor .finish-behind {width:100%;margin:-3px 0 10px;border:1px solid #c9cdc1;background:#e7ebe1;border-radius:6px;padding:4px 8px;font-size:12px;}

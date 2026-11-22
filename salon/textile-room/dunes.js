@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const tau=Math.PI*2;
-const studioAsset=name=>new URL(name,import.meta.url).href;
+const studioAsset=name=>new URL('../textile-room/'+name,document.baseURI).href;
 const material=(color,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
 function mesh(parent,geometry,surface,x=0,y=0,z=0){
   const piece=new THREE.Mesh(geometry,surface);

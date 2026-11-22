@@ -99,7 +99,8 @@ export function createFinishes(catalog){
   }
   function clearPresetLink(){
     const url=new URL(location.href);
-    if(url.searchParams.has('design') || url.hash.startsWith('#v=')){
+    if(url.searchParams.has('preset') || url.searchParams.has('design') || url.hash.startsWith('#v=')){
+      url.searchParams.delete('preset');
       url.searchParams.delete('design');url.hash='';history.replaceState(history.state,'',url);
     }
   }
@@ -124,20 +125,23 @@ export function createFinishes(catalog){
   };
   state.share=zone=>{
     const url=new URL(location.href);
-    url.searchParams.delete('design');url.searchParams.set('zone',zone);
+    url.searchParams.delete('design');url.searchParams.delete('quality');url.searchParams.delete('preset');url.searchParams.set('zone',zone);
     const record={colors:Object.fromEntries(saved),details:state.duneDetails.value,
       models:Object.fromEntries(modelIds.filter(id=>state.model(id)).map(id=>[id,state.model(id)]))};
-    url.hash='v='+btoa(JSON.stringify(record)).replace(/=+$/,'').replaceAll('+','-').replaceAll('/','_');
+    url.hash='v='+btoa(JSON.stringify(record)).replace(/=+$/,'').split('+').join('-').split('/').join('_');
     return url.href;
   };
   restore();
   const arrival=new URL(location.href);
-  const requested=arrival.searchParams.get('design');
+  const requested=arrival.searchParams.get('design') || (!loadChoices(designKey).version && !Object.keys(loadChoices(modelStorageKey)).length && !Object.keys(loadChoices(storageKey)).length && document.documentElement.hasAttribute('data-public-salon')?'arc':null);
   if(arrival.hash.startsWith('#v=') && arrival.hash.length<4000){
     try{
-      const record=JSON.parse(atob(arrival.hash.slice(3).replaceAll('-','+').replaceAll('_','/')));
+      const record=JSON.parse(atob(arrival.hash.slice(3).split('-').join('+').split('_').join('/')));
       if(record && typeof record.models==='object' && typeof record.colors==='object'){applyRecord(record);commit();}
     }catch{}
+  }else if(zones[arrival.searchParams.get('zone')]?.schemes.some(row=>row[0]===arrival.searchParams.get('preset'))){
+    state.setScheme(arrival.searchParams.get('zone'),arrival.searchParams.get('preset'));
+    history.replaceState(history.state,'',arrival);
   }else if(zones.salon.schemes.some(row=>row[0]===requested)){
     state.setScheme('salon',requested);
     history.replaceState(history.state,'',arrival);
@@ -193,7 +197,7 @@ const views = {
 };
 
 export function mountFinishEditor(state,lookAt,openInitially,initialZone='salon',walkBehind){
-  let area=Object.hasOwn(zones,initialZone)?initialZone:'salon';
+  let area=Object.prototype.hasOwnProperty.call(zones,initialZone)?initialZone:'salon';
   const bar=document.querySelector('.ui');
   const toggle=document.createElement('button');
   toggle.id='open-finishes';toggle.textContent='עיצוב הווילה';

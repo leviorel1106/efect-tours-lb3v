@@ -27,7 +27,7 @@ function finishMaterial(source,kind,maps,patio=false){
         diffuseColor.rgb*=.91+.21*weave.b+.22*(weave.r-.5)-.16*(weave.g-.5);
         float slub=sin(coords.y*971.+2.*sin(coords.x*41.))*(1.-smoothstep(.20,1.,fwidth(coords.y)*971.));
         diffuseColor.rgb*=1.+.038*slub;`:''}
-    `.replaceAll('FIELD',isCloth?'vec2(1.55,1.55)':isWood?'vec2(.62,1.65)':'vec2(.92,1.72)').replace('DETAIL',isCloth?'1.12':isWood?'1.18':(kind==='plaster'?'.30':'.66')));
+    `.split('FIELD').join(isCloth?'vec2(1.55,1.55)':isWood?'vec2(.62,1.65)':'vec2(.92,1.72)').replace('DETAIL',isCloth?'1.12':isWood?'1.18':(kind==='plaster'?'.30':'.66')));
     if(isCloth)s.fragmentShader=s.fragmentShader.replace('#include <normal_fragment_maps>',`
       #include <normal_fragment_maps>
       vec3 yarnX=dFdx(-vViewPosition),yarnY=dFdy(-vViewPosition);
@@ -78,7 +78,7 @@ export async function installCollection(scene,loader,state,textures,renderer){
   const scans=await Promise.all(scanFiles.map(name=>scanLoader.loadAsync('../textile-room/'+name+'.webp?v=6')));
   for(const tex of scans){tex.flipY=false;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}
   Object.assign(textures,{linen:scans[0],loops:scans[1],linenRelief:scans[2],loopsRelief:scans[3]});
-  const templates=new Map(await Promise.all(files.map(async file=>[file,(await loader.loadAsync(new URL('collection/'+file+'.glb',import.meta.url).href)).scene])));
+  const templates=new Map(await Promise.all(files.map(async file=>[file,(await loader.loadAsync(new URL('../textile-room/collection/'+file+'.glb',document.baseURI).href)).scene])));
   const records=[];
   for(const [id,poses] of Object.entries(placements)){
     modelList(id).forEach(([,pigment,file],index)=>{
@@ -163,7 +163,7 @@ export async function installCollection(scene,loader,state,textures,renderer){
   const taskLight=new THREE.PointLight(0xffdeb4,1.35,2.7,2);taskLight.position.set(-9.0,1.52,-7.28);scene.add(taskLight);
   const spot=new THREE.SpotLight(0xffedd6,54,12,.74,.83,2);
   spot.position.set(-11.8,5.8,.9);spot.target.position.set(-8.72,.38,-4.18);
-  spot.castShadow=true;spot.shadow.mapSize.set(1024,1024);spot.shadow.bias=-.00035;spot.shadow.normalBias=.012;
+  spot.castShadow=true;spot.shadow.mapSize.setScalar(renderer.userData?.compactTour?512:1024);spot.shadow.bias=-.00035;spot.shadow.normalBias=.012;
   scene.add(spot,spot.target);
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   function apply(){

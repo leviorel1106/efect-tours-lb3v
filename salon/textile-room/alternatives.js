@@ -4,7 +4,7 @@ import * as THREE from 'three';
 export async function installAlternatives(scene,loader,state,renderer){
   const templates=new Map();
   await Promise.all([...new Set(Object.values(state.catalog).map(entry=>entry.asset))].map(async name=>{
-    const url=new URL('../test-site/assets/'+name+'/'+name+'.gltf',import.meta.url);
+    const url=new URL('../test-site/assets/'+name+'/'+name+'.gltf',document.baseURI);
     templates.set(name,(await loader.loadAsync(url.href)).scene);
   }));
   const hemi=new THREE.HemisphereLight(0xfff4dd,0xb4a08a,1.58);

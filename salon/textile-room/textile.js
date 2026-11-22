@@ -118,7 +118,7 @@ export async function fitTextiles({scene,room,loader,renderer,finishes}){
      optical:{value:tex[family+'-surface.webp']},relief:{value:tex[family+'-relief.webp']},fibers:{value:tex[family+'-fiber.webp']},
      loops:{value:fluffy?1:0},cord:{value:name==='stitch'?1:0},layerDepth:{value:0}};
    o.material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,side:THREE.DoubleSide,uniforms});
-   if(fluffy){
+   if(fluffy && !renderer.userData?.compactTour){
      for(const distance of [.00085,.0018]){
        const outer=o.clone(false);
        outer.material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,uniforms:{...uniforms,layerDepth:{value:distance}},side:THREE.FrontSide,transparent:true,depthWrite:false});

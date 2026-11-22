@@ -262,7 +262,8 @@ void main(){
 }`;
 
 export async function installWoven(scene,oldModel,renderer,sky,sea,glass,fitFabric=null,finishes=null) {
- const draco=new DRACOLoader();draco.setDecoderPath('./vendor/examples/jsm/libs/draco/gltf/');
+ const compact=renderer.userData?.compactTour;
+ const draco=new DRACOLoader();draco.setWorkerLimit(compact?1:3);draco.setDecoderPath('./vendor/examples/jsm/libs/draco/gltf/');
  const loader=new GLTFLoader().setDRACOLoader(draco),images=new THREE.TextureLoader();
  const names=['Shell','Objects','cloth-panels','weave','stone','grain','plaster','print','coastal-light','travertine','clay','jute'];
  const [room,outside,maps]=await Promise.all([loader.loadAsync(base+'room.glb?v=2'),loader.loadAsync(base+'outside.glb?v=3'),
@@ -281,7 +282,7 @@ export async function installWoven(scene,oldModel,renderer,sky,sea,glass,fitFabr
  // The distant waves and horizon belong to one capture, beyond the existing deck and pool.
  sea.material.fragmentShader='varying vec3 vW;uniform sampler2D coast;uniform float uT;'+skyBody+'void main(){vec3 d=normalize(vW-cameraPosition);d.y+=.00052*sin(vW.x*.015+uT*.74)*exp(-length(vW-cameraPosition)/1300.);gl_FragColor=vec4(realSky(d),1.);}';
  sea.material.uniforms.coast={value:coast};sea.material.needsUpdate=true;
- const cube=new THREE.WebGLCubeRenderTarget(256,{type:THREE.HalfFloatType,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+ const cube=new THREE.WebGLCubeRenderTarget(compact?96:256,{type:renderer.extensions.has('EXT_color_buffer_float')?THREE.HalfFloatType:THREE.UnsignedByteType,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
  const probe=new THREE.CubeCamera(.07,12000,cube);probe.position.set(1.3,1.55,-3.4);
  const time={value:0},enabled={value:0};
  const u={panels:{value:textures['cloth-panels']},art:{value:textures.print},coast:{value:coast},roomProbe:{value:cube.texture},t:time,probeWeight:enabled};
@@ -336,7 +337,7 @@ export async function installWoven(scene,oldModel,renderer,sky,sea,glass,fitFabr
    }
  }
  refreshReflections();
- if(finishes){
+ if(finishes && renderer.extensions.has('EXT_color_buffer_float')){
    const pmrem=new THREE.PMREMGenerator(renderer);
    scene.environment=pmrem.fromCubemap(cube.texture).texture;
    pmrem.dispose();
